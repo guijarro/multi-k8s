@@ -1,0 +1,24 @@
+sudo: required
+services:
+  - docker
+before_install:
+  - openssl aes-256-cbc -K $encrypted_971fae852fbc_key -iv $encrypted_971fae852fbc_iv -in multi-k8-287808-e973f0da794f.json.enc -out multi-k8-287808-e973f0da794f.json -d
+  - curl https://sdk.cloud.google.com | bash > /dev/null;
+  - source $HOME/google-cloud-sdk/path.bash.inc
+  - gcloud components update kubectl
+  - gcloud auth activate-service-account --key-file service-account.json
+  - rm service-account.json
+  - gcloud config set project multi-k8s-276322
+  - gcloud config set compute/zone europe-west3-a
+  - gcloud container clusters get-credentials multi-cluster
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - docker build -t reguero/react-test -f client/Dockerfile.dev ./client
+
+script:
+  - docker run -e CI=true reguero/react-test npm run test
+
+deploy:
+  provider: script
+  script: bash ./deploy.sh
+  on:
+    branch: master
